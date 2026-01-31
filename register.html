@@ -4,59 +4,77 @@
   <meta charset="UTF-8">
   <title>Register - Blopinion</title>
 
-  <!-- Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600;700&family=Patrick+Hand&family=Inter:wght@400;600&display=swap" rel="stylesheet">
-
-  <!-- CSS -->
   <link rel="stylesheet" href="css/style.css" />
 </head>
 
 <body class="auth-body">
 
   <div class="auth-card">
-    <h1 class="auth-logo">
-      <span>BLO</span>PINION
-    </h1>
-
+    <h1 class="auth-logo"><span>BLO</span>PINION</h1>
     <p class="auth-title">Create Account</p>
 
     <input id="email" placeholder="Email" type="email">
     <input id="password" placeholder="Password" type="password">
+    <input id="confirmPassword" placeholder="Confirm Password" type="password">
 
     <button id="registerBtn">Register</button>
 
     <div class="auth-back">
       <a href="index.html">← Back to Login</a>
     </div>
+
+    <p id="errorMsg" style="color:#ff6b6b;margin-top:12px;"></p>
   </div>
 
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 
+  <!-- Firebase Config -->
+  <script src="js/firebase-config.js"></script>
+
   <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyCsWjyFGCWbeq23SG_xSXDsmkOdRL69nUY",
-      authDomain: "blopinion-a62b5.firebaseapp.com",
-      projectId: "blopinion-a62b5",
-      storageBucket: "blopinion-a62b5.firebasestorage.app",
-      messagingSenderId: "807528898085",
-      appId: "1:807528898085:web:915a3ed2b537bf905fa9cc"
-    };
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
 
-    firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
+    const errorMsg = document.getElementById("errorMsg");
 
-    document.getElementById("registerBtn").onclick = () => {
-      const email = document.getElementById("email").value;
+    document.getElementById("registerBtn").addEventListener("click", () => {
+      const email = document.getElementById("email").value.trim();
       const password = document.getElementById("password").value;
+      const confirmPassword = document.getElementById("confirmPassword").value;
+
+      errorMsg.textContent = "";
+
+      console.log("Register clicked:", email);
+
+      if (!email || !password || !confirmPassword) {
+        errorMsg.textContent = "Please fill in all fields.";
+        return;
+      }
+
+      if (password.length < 6) {
+        errorMsg.textContent = "Password must be at least 6 characters.";
+        return;
+      }
+
+      if (password !== confirmPassword) {
+        errorMsg.textContent = "Passwords do not match.";
+        return;
+      }
 
       auth.createUserWithEmailAndPassword(email, password)
         .then(() => {
           window.location.href = "dashboard.html";
         })
-        .catch(err => alert(err.message));
-    };
+        .catch(err => {
+          console.error(err);
+          errorMsg.textContent = err.message;
+        });
+    });
   </script>
 
 </body>
