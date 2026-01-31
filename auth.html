@@ -22,11 +22,8 @@
       margin: 20px auto 0;
       display: none;
     }
-
     @keyframes spin {
-      to {
-        transform: rotate(360deg);
-      }
+      to { transform: rotate(360deg); }
     }
   </style>
 </head>
@@ -68,20 +65,18 @@
       statusMsg.textContent = "";
     }
 
-    function hideLoading() {
-      spinner.style.display = "none";
-    }
-
     function showError(msg = "Invalid credentials") {
-      hideLoading();
+      spinner.style.display = "none";
       statusMsg.style.color = "#ff6b6b";
       statusMsg.textContent = msg;
+      sessionStorage.removeItem("googleRedirectInProgress");
     }
 
-    // ========== HANDLE GOOGLE REDIRECT RESULT ==========
+    // ===== HANDLE REDIRECT RESULT FIRST =====
     auth.getRedirectResult()
       .then(result => {
         if (result.user) {
+          sessionStorage.removeItem("googleRedirectInProgress");
           window.location.href = "dashboard.html";
         }
       })
@@ -89,19 +84,26 @@
         showError("Invalid credentials");
       });
 
-    // ========== GOOGLE LOGIN ==========
+    // ===== GOOGLE LOGIN =====
     if (method === "google") {
-      const provider = new firebase.auth.GoogleAuthProvider();
-      showLoading("Continue with Google");
+      const alreadyRedirected = sessionStorage.getItem("googleRedirectInProgress");
 
-      setTimeout(() => {
-        showError("Taking too long. Try again.");
-      }, 7000);
+      if (!alreadyRedirected) {
+        sessionStorage.setItem("googleRedirectInProgress", "true");
 
-      auth.signInWithRedirect(provider);
+        const provider = new firebase.auth.GoogleAuthProvider();
+        showLoading("Continue with Google");
+
+        // Safety timeout
+        setTimeout(() => {
+          showError("Taking too long. Try again.");
+        }, 7000);
+
+        auth.signInWithRedirect(provider);
+      }
     }
 
-    // ========== EMAIL LOGIN ==========
+    // ===== EMAIL LOGIN =====
     if (method === "email") {
       card.innerHTML = `
         <h1 class="auth-logo"><span>BLO</span>PINION</h1>
