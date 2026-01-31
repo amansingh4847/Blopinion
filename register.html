@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Register - Blopinion</title>
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600;700&family=Patrick+Hand&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+
+<body class="auth-body">
+
+  <div class="auth-card">
+    <h1 class="auth-logo">
+      <span>BLO</span>PINION
+    </h1>
+
+    <p class="auth-title">Create Account</p>
+
+    <input id="email" placeholder="Email" type="email">
+    <input id="password" placeholder="Password" type="password">
+
+    <button id="registerBtn">Register</button>
+
+    <div class="auth-back">
+      <a href="index.html">← Back to Login</a>
+    </div>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCsWjyFGCWbeq23SG_xSXDsmkOdRL69nUY",
+      authDomain: "blopinion-a62b5.firebaseapp.com",
+      projectId: "blopinion-a62b5",
+      storageBucket: "blopinion-a62b5.firebasestorage.app",
+      messagingSenderId: "807528898085",
+      appId: "1:807528898085:web:915a3ed2b537bf905fa9cc"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+
+    document.getElementById("registerBtn").onclick = () => {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+
+      auth.createUserWithEmailAndPassword(email, password)
+        .then(() => {
+          window.location.href = "dashboard.html";
+        })
+        .catch(err => alert(err.message));
+    };
+  </script>
+
+</body>
+</html>
