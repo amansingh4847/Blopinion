@@ -9,80 +9,155 @@
 
   <!-- CSS -->
   <link rel="stylesheet" href="css/style.css" />
+
+  <!-- Spinner Style -->
+  <style>
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid rgba(255,255,255,0.2);
+      border-top: 4px solid #ffcc00;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 20px auto 0;
+      display: none;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+  </style>
 </head>
 
 <body class="auth-body">
 
   <div class="auth-card" id="authCard">
-    <h1 class="auth-logo">
-      <span>BLO</span>PINION
-    </h1>
-    <p class="auth-title">Signing you in...</p>
+    <h1 class="auth-logo"><span>BLO</span>PINION</h1>
+    <p class="auth-title" id="authTitle">Signing you in...</p>
+    <div class="spinner" id="spinner"></div>
+    <p id="statusMsg" style="margin-top:12px;"></p>
   </div>
 
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 
+  <!-- Firebase Config -->
+  <script src="js/firebase-config.js"></script>
+
   <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyCsWjyFGCWbeq23SG_xSXDsmkOdRL69nUY",
-      authDomain: "blopinion-a62b5.firebaseapp.com",
-      projectId: "blopinion-a62b5",
-      storageBucket: "blopinion-a62b5.firebasestorage.app",
-      messagingSenderId: "807528898085",
-      appId: "1:807528898085:web:915a3ed2b537bf905fa9cc"
-    };
+    // Safe init
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
 
-    firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
-
     const params = new URLSearchParams(window.location.search);
     const method = params.get("method");
 
+    const spinner = document.getElementById("spinner");
+    const statusMsg = document.getElementById("statusMsg");
+    const title = document.getElementById("authTitle");
     const card = document.getElementById("authCard");
 
-    // GOOGLE LOGIN
+    function showLoading(msg = "Signing in...") {
+      title.textContent = msg;
+      spinner.style.display = "block";
+      statusMsg.textContent = "";
+    }
+
+    function hideLoading() {
+      spinner.style.display = "none";
+    }
+
+    function showError(msg = "Invalid credentials") {
+      hideLoading();
+      statusMsg.style.color = "#ff6b6b";
+      statusMsg.textContent = msg;
+    }
+
+    // ========== GOOGLE LOGIN ==========
     if (method === "google") {
       const provider = new firebase.auth.GoogleAuthProvider();
+      showLoading("Continue with Google");
+
+      const timeout = setTimeout(() => {
+        showError("Something went wrong. Try again.");
+      }, 7000);
 
       auth.signInWithPopup(provider)
         .then(() => {
+          clearTimeout(timeout);
           window.location.href = "dashboard.html";
         })
         .catch(err => {
+          clearTimeout(timeout);
+
           if (err.code === "auth/popup-closed-by-user") {
             window.location.href = "index.html";
-            } else {
-            card.innerHTML += `<p style="color:red;margin-top:15px;">${err.message}</p>`;
-            }
+          } else {
+            showError("Invalid credentials");
+          }
         });
     }
 
-    // EMAIL LOGIN
+    // ========== EMAIL LOGIN ==========
     if (method === "email") {
       card.innerHTML = `
         <h1 class="auth-logo"><span>BLO</span>PINION</h1>
-        <p class="auth-title">Sign in with Email</p>
+        <p class="auth-title" id="authTitle">Sign in with Email</p>
 
         <input id="email" placeholder="Email" type="email">
         <input id="password" placeholder="Password" type="password">
         <button id="loginBtn">Login</button>
+
+        <div class="spinner" id="spinner"></div>
+        <p id="statusMsg" style="margin-top:12px;"></p>
 
         <div class="auth-back">
           <a href="index.html">← Back to Login</a>
         </div>
       `;
 
-      document.getElementById("loginBtn").onclick = () => {
-        const email = document.getElementById("email").value;
+      const loginBtn = document.getElementById("loginBtn");
+      const spinner = document.getElementById("spinner");
+      const statusMsg = document.getElementById("statusMsg");
+
+      loginBtn.onclick = () => {
+        const email = document.getElementById("email").value.trim();
         const password = document.getElementById("password").value;
+
+        if (!email || !password) {
+          statusMsg.style.color = "#ff6b6b";
+          statusMsg.textContent = "Please fill in all fields.";
+          return;
+        }
+
+        spinner.style.display = "block";
+        statusMsg.textContent = "";
+        loginBtn.disabled = true;
+
+        const timeout = setTimeout(() => {
+          spinner.style.display = "none";
+          statusMsg.style.color = "#ff6b6b";
+          statusMsg.textContent = "Something went wrong. Try again.";
+          loginBtn.disabled = false;
+        }, 7000);
 
         auth.signInWithEmailAndPassword(email, password)
           .then(() => {
+            clearTimeout(timeout);
             window.location.href = "dashboard.html";
           })
-          .catch(err => alert(err.message));
+          .catch(() => {
+            clearTimeout(timeout);
+            spinner.style.display = "none";
+            statusMsg.style.color = "#ff6b6b";
+            statusMsg.textContent = "Invalid credentials";
+            loginBtn.disabled = false;
+          });
       };
     }
   </script>

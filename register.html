@@ -4,7 +4,10 @@
   <meta charset="UTF-8">
   <title>Register - Blopinion</title>
 
+  <!-- Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600;700&family=Patrick+Hand&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+
+  <!-- CSS -->
   <link rel="stylesheet" href="css/style.css" />
 </head>
 
@@ -35,6 +38,7 @@
   <script src="js/firebase-config.js"></script>
 
   <script>
+    // Safe Firebase init
     if (!firebase.apps.length) {
       firebase.initializeApp(firebaseConfig);
     }
@@ -49,8 +53,7 @@
 
       errorMsg.textContent = "";
 
-      console.log("Register clicked:", email);
-
+      // Frontend validation
       if (!email || !password || !confirmPassword) {
         errorMsg.textContent = "Please fill in all fields.";
         return;
@@ -66,13 +69,35 @@
         return;
       }
 
+      // Firebase Register
       auth.createUserWithEmailAndPassword(email, password)
         .then(() => {
           window.location.href = "dashboard.html";
         })
         .catch(err => {
           console.error(err);
-          errorMsg.textContent = err.message;
+
+          // Friendly error mapping
+          let msg = "Registration failed.";
+
+          switch (err.code) {
+            case "auth/email-already-in-use":
+              msg = "Email already exists.";
+              break;
+            case "auth/invalid-email":
+              msg = "Invalid email address.";
+              break;
+            case "auth/weak-password":
+              msg = "Password too weak.";
+              break;
+            case "auth/operation-not-allowed":
+              msg = "Email signup is disabled.";
+              break;
+            default:
+              msg = "Registration failed.";
+          }
+
+          errorMsg.textContent = msg;
         });
     });
   </script>
