@@ -1,6 +1,5 @@
 document.addEventListener("DOMContentLoaded", () => {
 
-  // LOGIN PAGE
   const googleBtn = document.querySelector(".google-btn");
   const emailBtn = document.querySelector(".email-btn");
   const registerLink = document.querySelector(".register a");
@@ -8,13 +7,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (googleBtn) {
     googleBtn.onclick = () => {
-      window.location.href = "auth.html?method=google";
+      sessionStorage.setItem("loginIntent", "google");
+      window.location.href = "auth.html";
     };
   }
 
   if (emailBtn) {
     emailBtn.onclick = () => {
-      window.location.href = "auth.html?method=email";
+      sessionStorage.setItem("loginIntent", "email");
+      window.location.href = "auth.html";
     };
   }
 
@@ -30,27 +31,5 @@ document.addEventListener("DOMContentLoaded", () => {
       alert("Contact page coming soon 📩");
     };
   }
-
-  // DASHBOARD PAGE
-  const postBtn = document.querySelector(".post-btn");
-
-  if (postBtn) {
-    postBtn.onclick = () => {
-      const text = prompt("Write your opinion 👇");
-      if (!text || text.trim() === "") return;
-
-      const feed = document.querySelector(".feed");
-
-      const card = document.createElement("div");
-      card.className = "card";
-
-      const p = document.createElement("p");
-      p.innerText = text;
-
-      card.appendChild(p);
-      feed.prepend(card);
-    };
-  }
-
 
 });

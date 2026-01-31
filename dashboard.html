@@ -1,136 +1,80 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>Blopinion - Dashboard</title>
 
-  <!-- Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600;700&family=Patrick+Hand&family=Inter:wght@400;600&display=swap" rel="stylesheet">
-
-  <!-- CSS -->
   <link rel="stylesheet" href="css/style.css" />
-
-  <!-- Sidebar UI Tweaks -->
-  <style>
-    .sidebar {
-      align-items: center;
-      text-align: center;
-    }
-
-    .side-logo {
-      margin-bottom: 20px;
-    }
-
-    .user-box {
-      margin-top: 20px;
-      font-size: 14px;
-      opacity: 0.9;
-      word-break: break-all;
-    }
-
-    .logout {
-      margin-top: 12px;
-      padding: 10px 20px;
-      border-radius: 20px;
-      border: 1px solid white;
-      cursor: pointer;
-    }
-  </style>
 </head>
 
 <body class="dash-body">
 
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-
-  <!-- Firebase Config -->
-  <script src="js/firebase-config.js"></script>
-
-  <!-- AUTH + UI LOGIC -->
-  <script>
-    if (!firebase.apps.length) {
-      firebase.initializeApp(firebaseConfig);
-    }
-
-    const auth = firebase.auth();
-
-    document.addEventListener("DOMContentLoaded", () => {
-      const userBox = document.getElementById("userBox");
-      const logoutBtn = document.getElementById("logoutBtn");
-
-      // Protect page + show user
-      auth.onAuthStateChanged(user => {
-        if (!user) {
-          window.location.href = "index.html";
-        } else {
-          const name = user.email || "User";
-          userBox.textContent = name;
-        }
-      });
-
-      // Logout confirmation
-      logoutBtn.addEventListener("click", () => {
-        const confirmLogout = confirm("Are you sure you want to log out?");
-        if (confirmLogout) {
-          auth.signOut().then(() => {
-            window.location.href = "index.html";
-          });
-        }
-      });
-    });
-  </script>
-
-  <!-- SIDEBAR -->
   <aside class="sidebar">
-    <div>
+    <div style="text-align:center;">
       <h2 class="side-logo">BLOPINION</h2>
       <button class="post-btn">Post</button>
     </div>
 
-    <!-- USER INFO -->
-    <div class="user-box" id="userBox">
-      Loading...
+    <div style="text-align:center;">
+      <p id="userEmail" style="font-size:14px;opacity:0.9;margin-bottom:12px;"></p>
+      <button 
+  id="logoutBtn" 
+  class="post-btn"
+  style="
+    background: transparent;
+    border: 2px solid white;
+    color: white;
+  "
+>
+  Logout
+</button>
+      </button>
     </div>
-
-    <!-- LOGOUT -->
-    <div class="logout" id="logoutBtn">LogOut →</div>
   </aside>
 
-  <!-- FEED -->
-  <main class="feed">
+  <main class="feed"></main>
 
-    <div class="card">
-      <img src="https://images.unsplash.com/1600891964599-f61ba0e24092" />
-      <p>
-        Junk food tempts us with bold flavors and instant
-        satisfaction in every bite.
-      </p>
-    </div>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
 
-    <div class="card">
-      <img src="https://images.unsplash.com/1549692520-acc6669e2f0c" />
-      <p>
-        Japan’s skyscrapers rise like silent giants, blending
-        futuristic design with deep-rooted tradition. Glass
-        and steel towers reflect neon dreams across cities
-        like Tokyo and Osaka.
-      </p>
-    </div>
+  <script>
+    const auth = window.firebaseAuth;
+    const emailEl = document.getElementById("userEmail");
+    const logoutBtn = document.getElementById("logoutBtn");
+    const feed = document.querySelector(".feed");
 
-    <div class="card">
-      <p>
-        Boring classes feel like time stands still while the
-        clock keeps ticking.<br><br>
-        Even the brightest minds start drifting when the
-        lesson loses its spark.
-      </p>
-    </div>
+    auth.onAuthStateChanged(user => {
+      if (!user) {
+        window.location.href = "index.html";
+      } else {
+        emailEl.textContent = user.email;
+      }
+    });
 
-  </main>
+    logoutBtn.onclick = () => {
+      if (!confirm("Are you sure you want to log out?")) return;
 
-  <!-- MAIN JS (Post button logic, etc.) -->
-  <script src="js/main.js"></script>
+      auth.signOut().then(() => {
+        window.location.href = "index.html";
+      });
+    };
+
+    document.querySelector(".post-btn").onclick = () => {
+      const text = prompt("Write your opinion 👇");
+      if (!text) return;
+
+      const card = document.createElement("div");
+      card.className = "card";
+
+      const p = document.createElement("p");
+      p.innerText = text;
+
+      card.appendChild(p);
+      feed.prepend(card);
+    };
+  </script>
 
 </body>
 </html>

@@ -4,10 +4,7 @@
   <meta charset="UTF-8">
   <title>Register - Blopinion</title>
 
-  <!-- Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600;700&family=Patrick+Hand&family=Inter:wght@400;600&display=swap" rel="stylesheet">
-
-  <!-- CSS -->
   <link rel="stylesheet" href="css/style.css" />
 </head>
 
@@ -30,76 +27,43 @@
     <p id="errorMsg" style="color:#ff6b6b;margin-top:12px;"></p>
   </div>
 
-  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-
-  <!-- Firebase Config -->
   <script src="js/firebase-config.js"></script>
 
   <script>
-    // Safe Firebase init
-    if (!firebase.apps.length) {
-      firebase.initializeApp(firebaseConfig);
-    }
-
-    const auth = firebase.auth();
+    const auth = window.firebaseAuth;
     const errorMsg = document.getElementById("errorMsg");
 
-    document.getElementById("registerBtn").addEventListener("click", () => {
+    document.getElementById("registerBtn").onclick = () => {
       const email = document.getElementById("email").value.trim();
       const password = document.getElementById("password").value;
-      const confirmPassword = document.getElementById("confirmPassword").value;
+      const confirm = document.getElementById("confirmPassword").value;
 
       errorMsg.textContent = "";
 
-      // Frontend validation
-      if (!email || !password || !confirmPassword) {
-        errorMsg.textContent = "Please fill in all fields.";
+      if (!email || !password || !confirm) {
+        errorMsg.textContent = "Fill all fields";
         return;
       }
 
-      if (password.length < 6) {
-        errorMsg.textContent = "Password must be at least 6 characters.";
+      if (password !== confirm) {
+        errorMsg.textContent = "Passwords do not match";
         return;
       }
 
-      if (password !== confirmPassword) {
-        errorMsg.textContent = "Passwords do not match.";
-        return;
-      }
-
-      // Firebase Register
       auth.createUserWithEmailAndPassword(email, password)
         .then(() => {
           window.location.href = "dashboard.html";
         })
         .catch(err => {
-          console.error(err);
-
-          // Friendly error mapping
-          let msg = "Registration failed.";
-
-          switch (err.code) {
-            case "auth/email-already-in-use":
-              msg = "Email already exists.";
-              break;
-            case "auth/invalid-email":
-              msg = "Invalid email address.";
-              break;
-            case "auth/weak-password":
-              msg = "Password too weak.";
-              break;
-            case "auth/operation-not-allowed":
-              msg = "Email signup is disabled.";
-              break;
-            default:
-              msg = "Registration failed.";
+          if (err.code === "auth/email-already-in-use") {
+            errorMsg.textContent = "Email already exists";
+          } else {
+            errorMsg.textContent = "Registration failed";
           }
-
-          errorMsg.textContent = msg;
         });
-    });
+    };
   </script>
 
 </body>
