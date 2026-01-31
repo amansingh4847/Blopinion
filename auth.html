@@ -48,7 +48,7 @@
   <script src="js/firebase-config.js"></script>
 
   <script>
-    // Safe init
+    // Safe Firebase init
     if (!firebase.apps.length) {
       firebase.initializeApp(firebaseConfig);
     }
@@ -78,36 +78,34 @@
       statusMsg.textContent = msg;
     }
 
+    // ========== HANDLE GOOGLE REDIRECT RESULT ==========
+    auth.getRedirectResult()
+      .then(result => {
+        if (result.user) {
+          window.location.href = "dashboard.html";
+        }
+      })
+      .catch(() => {
+        showError("Invalid credentials");
+      });
+
     // ========== GOOGLE LOGIN ==========
     if (method === "google") {
       const provider = new firebase.auth.GoogleAuthProvider();
       showLoading("Continue with Google");
 
-      const timeout = setTimeout(() => {
-        showError("Something went wrong. Try again.");
+      setTimeout(() => {
+        showError("Taking too long. Try again.");
       }, 7000);
 
-      auth.signInWithPopup(provider)
-        .then(() => {
-          clearTimeout(timeout);
-          window.location.href = "dashboard.html";
-        })
-        .catch(err => {
-          clearTimeout(timeout);
-
-          if (err.code === "auth/popup-closed-by-user") {
-            window.location.href = "index.html";
-          } else {
-            showError("Invalid credentials");
-          }
-        });
+      auth.signInWithRedirect(provider);
     }
 
     // ========== EMAIL LOGIN ==========
     if (method === "email") {
       card.innerHTML = `
         <h1 class="auth-logo"><span>BLO</span>PINION</h1>
-        <p class="auth-title" id="authTitle">Sign in with Email</p>
+        <p class="auth-title">Sign in with Email</p>
 
         <input id="email" placeholder="Email" type="email">
         <input id="password" placeholder="Password" type="password">
@@ -142,7 +140,7 @@
         const timeout = setTimeout(() => {
           spinner.style.display = "none";
           statusMsg.style.color = "#ff6b6b";
-          statusMsg.textContent = "Something went wrong. Try again.";
+          statusMsg.textContent = "Taking too long. Try again.";
           loginBtn.disabled = false;
         }, 7000);
 
