@@ -33,7 +33,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // DASHBOARD PAGE
   const postBtn = document.querySelector(".post-btn");
-  const logoutBtn = document.querySelector(".logout");
 
   if (postBtn) {
     postBtn.onclick = () => {
@@ -53,10 +52,5 @@ document.addEventListener("DOMContentLoaded", () => {
     };
   }
 
-  if (logoutBtn) {
-    logoutBtn.onclick = () => {
-      window.location.href = "index.html";
-    };
-  }
 
 });
