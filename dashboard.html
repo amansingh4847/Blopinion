@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Blopinion - Dashboard</title>
 
   <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600;700&family=Patrick+Hand&family=Inter:wght@400;600&display=swap" rel="stylesheet">
@@ -10,23 +10,47 @@
 
 <body class="dash-body">
 
+  <!-- SIDEBAR -->
   <aside class="sidebar">
     <div style="text-align:center;">
       <h2 class="side-logo">BLOPINION</h2>
-      <button class="post-btn">Post</button>
+      <button class="post-btn" id="openPostModal">Post</button>
     </div>
 
     <div style="text-align:center;">
       <p id="userEmail" style="font-size:14px;opacity:0.9;margin-bottom:12px;"></p>
-      <button id="logoutBtn" class="post-btn" style="background:transparent;border:2px solid white;color:white;">
+      <button id="logoutBtn" class="post-btn transparent-btn">
         Logout
       </button>
     </div>
   </aside>
 
-  <main class="feed" id="feed">
-    <!-- Live posts will load here -->
-  </main>
+  <!-- FEED -->
+  <main class="feed" id="feed"></main>
+
+  <!-- POST MODAL -->
+  <div id="postModal" class="modal hidden">
+    <div class="modal-card">
+      <h2>Create Post</h2>
+
+      <textarea id="postText" placeholder="Write your opinion..."></textarea>
+
+      <!-- IMAGE PREVIEW -->
+      <img id="imagePreview" class="image-preview hidden" />
+
+      <label class="image-upload">
+        📷 Add Image
+        <input type="file" id="imageInput" accept="image/*" hidden />
+      </label>
+
+      <div class="modal-actions">
+        <button id="cancelPost">Cancel</button>
+        <button id="submitPost">Post</button>
+      </div>
+
+      <p id="postStatus"></p>
+    </div>
+  </div>
 
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -37,20 +61,40 @@
   <script src="js/firebase-config.js"></script>
 
   <script>
-    const auth = window.firebaseAuth;
+    // ================= INIT =================
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+
+    const auth = firebase.auth();
     const db = firebase.firestore();
 
-    const emailEl = document.getElementById("userEmail");
+    const userEmailEl = document.getElementById("userEmail");
     const logoutBtn = document.getElementById("logoutBtn");
     const feed = document.getElementById("feed");
-    const postBtn = document.querySelector(".post-btn");
+
+    const postModal = document.getElementById("postModal");
+    const openPostModal = document.getElementById("openPostModal");
+    const cancelPost = document.getElementById("cancelPost");
+    const submitPost = document.getElementById("submitPost");
+    const postText = document.getElementById("postText");
+    const imageInput = document.getElementById("imageInput");
+    const imagePreview = document.getElementById("imagePreview");
+    const postStatus = document.getElementById("postStatus");
+
+    // ================= CLOUDINARY =================
+    const cloudName = "djkjrowyi";
+    const uploadPreset = "blopinion_upload"; // ✅ CORRECT PRESET
+
+    let currentUser = null;
 
     // ================= AUTH GUARD =================
     auth.onAuthStateChanged(user => {
       if (!user) {
-        window.location.href = "index.html";
+        window.location.replace("index.html");
       } else {
-        emailEl.textContent = user.email;
+        currentUser = user;
+        userEmailEl.textContent = user.email;
         loadPosts();
       }
     });
@@ -58,70 +102,110 @@
     // ================= LOGOUT =================
     logoutBtn.onclick = () => {
       if (!confirm("Are you sure you want to log out?")) return;
+
       auth.signOut().then(() => {
         window.location.href = "index.html";
       });
     };
 
+    // ================= MODAL =================
+    openPostModal.onclick = () => {
+      postModal.classList.remove("hidden");
+    };
+
+    cancelPost.onclick = () => {
+      closeModal();
+    };
+
+    function closeModal() {
+      postModal.classList.add("hidden");
+      postText.value = "";
+      imageInput.value = "";
+      imagePreview.classList.add("hidden");
+      postStatus.textContent = "";
+    }
+
+    // ================= IMAGE PREVIEW =================
+    imageInput.onchange = () => {
+      const file = imageInput.files[0];
+
+      if (!file) {
+        imagePreview.classList.add("hidden");
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        imagePreview.src = reader.result;
+        imagePreview.classList.remove("hidden");
+      };
+      reader.readAsDataURL(file);
+    };
+
     // ================= CREATE POST =================
-    postBtn.onclick = async () => {
-      const text = prompt("Write your opinion 👇");
-      if (!text || !text.trim()) return;
+    submitPost.onclick = async () => {
+      const text = postText.value.trim();
+      const file = imageInput.files[0];
 
-      const fileInput = document.createElement("input");
-      fileInput.type = "file";
-      fileInput.accept = "image/*";
-      fileInput.click();
+      if (!text) {
+        postStatus.style.color = "#ff6b6b";
+        postStatus.textContent = "Post cannot be empty";
+        return;
+      }
 
-      fileInput.onchange = async () => {
-        const file = fileInput.files[0];
-        if (!file) return;
+      submitPost.disabled = true;
+      postStatus.style.color = "white";
+      postStatus.textContent = "Posting...";
 
-        const status = document.createElement("p");
-        status.style.opacity = "0.7";
-        status.textContent = "Uploading image...";
-        feed.prepend(status);
+      let imageUrl = "";
 
-        try {
-          // ================= CLOUDINARY UPLOAD =================
+      try {
+        // ========== UPLOAD IMAGE ==========
+        if (file) {
           const formData = new FormData();
           formData.append("file", file);
-          formData.append("upload_preset", "Ebd4XUiMrH7-Cf3_h2o2fLsV2G8");
-
-          const cloudName = "djkjrowyi";
+          formData.append("upload_preset", uploadPreset);
 
           const res = await fetch(
             `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-            {
-              method: "POST",
-              body: formData
-            }
+            { method: "POST", body: formData }
           );
 
           const data = await res.json();
 
           if (!data.secure_url) {
-            throw new Error("Cloudinary upload failed");
+            throw new Error("Image upload failed");
           }
 
-          // ================= SAVE TO FIRESTORE =================
-          await db.collection("posts").add({
-            text: text.trim(),
-            imageUrl: data.secure_url,
-            userEmail: auth.currentUser.email,
-            userId: auth.currentUser.uid,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-          });
-
-          status.remove();
-        } catch (err) {
-          console.error(err);
-          status.textContent = "Upload failed ❌";
+          imageUrl = data.secure_url;
         }
-      };
+
+        // ========== SAVE TO FIRESTORE ==========
+        await db.collection("posts").add({
+          text: text,
+          image: imageUrl,
+          email: currentUser.email,
+          uid: currentUser.uid,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        postStatus.style.color = "#4caf50";
+        postStatus.textContent = "Posted successfully!";
+
+        setTimeout(() => {
+          closeModal();
+          submitPost.disabled = false;
+        }, 700);
+
+      } catch (err) {
+        console.error(err);
+        postStatus.style.color = "#ff6b6b";
+        postStatus.textContent = "Failed to post ❌";
+        submitPost.disabled = false;
+      }
     };
 
-    // ================= LOAD FEED (REALTIME) =================
+    // ================= LOAD POSTS =================
     function loadPosts() {
       db.collection("posts")
         .orderBy("createdAt", "desc")
@@ -134,24 +218,39 @@
             const card = document.createElement("div");
             card.className = "card";
 
-            const user = document.createElement("p");
-            user.style.fontSize = "12px";
-            user.style.opacity = "0.7";
-            user.textContent = post.userEmail;
+            const email = document.createElement("p");
+            email.style.fontSize = "13px";
+            email.style.opacity = "0.7";
+            email.innerText = post.email;
 
             const text = document.createElement("p");
-            text.textContent = post.text;
+            text.innerText = post.text;
 
-            card.appendChild(user);
+            card.appendChild(email);
 
-            if (post.imageUrl) {
+            if (post.image) {
               const img = document.createElement("img");
-              img.src = post.imageUrl;
-              img.loading = "lazy";
+              img.src = post.image;
               card.appendChild(img);
             }
 
             card.appendChild(text);
+
+            // DELETE BUTTON (OWNER ONLY)
+            if (post.uid === currentUser.uid) {
+              const delBtn = document.createElement("button");
+              delBtn.innerText = "Delete";
+              delBtn.className = "delete-btn";
+
+              delBtn.onclick = () => {
+                if (confirm("Delete this post?")) {
+                  db.collection("posts").doc(doc.id).delete();
+                }
+              };
+
+              card.appendChild(delBtn);
+            }
+
             feed.appendChild(card);
           });
         });
