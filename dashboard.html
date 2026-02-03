@@ -18,62 +18,144 @@
 
     <div style="text-align:center;">
       <p id="userEmail" style="font-size:14px;opacity:0.9;margin-bottom:12px;"></p>
-      <button 
-  id="logoutBtn" 
-  class="post-btn"
-  style="
-    background: transparent;
-    border: 2px solid white;
-    color: white;
-  "
->
-  Logout
-</button>
+      <button id="logoutBtn" class="post-btn" style="background:transparent;border:2px solid white;color:white;">
+        Logout
       </button>
     </div>
   </aside>
 
-  <main class="feed"></main>
+  <main class="feed" id="feed">
+    <!-- Live posts will load here -->
+  </main>
 
+  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+  <!-- Firebase Config -->
   <script src="js/firebase-config.js"></script>
 
   <script>
     const auth = window.firebaseAuth;
+    const db = firebase.firestore();
+
     const emailEl = document.getElementById("userEmail");
     const logoutBtn = document.getElementById("logoutBtn");
-    const feed = document.querySelector(".feed");
+    const feed = document.getElementById("feed");
+    const postBtn = document.querySelector(".post-btn");
 
+    // ================= AUTH GUARD =================
     auth.onAuthStateChanged(user => {
       if (!user) {
         window.location.href = "index.html";
       } else {
         emailEl.textContent = user.email;
+        loadPosts();
       }
     });
 
+    // ================= LOGOUT =================
     logoutBtn.onclick = () => {
       if (!confirm("Are you sure you want to log out?")) return;
-
       auth.signOut().then(() => {
         window.location.href = "index.html";
       });
     };
 
-    document.querySelector(".post-btn").onclick = () => {
+    // ================= CREATE POST =================
+    postBtn.onclick = async () => {
       const text = prompt("Write your opinion 👇");
-      if (!text) return;
+      if (!text || !text.trim()) return;
 
-      const card = document.createElement("div");
-      card.className = "card";
+      const fileInput = document.createElement("input");
+      fileInput.type = "file";
+      fileInput.accept = "image/*";
+      fileInput.click();
 
-      const p = document.createElement("p");
-      p.innerText = text;
+      fileInput.onchange = async () => {
+        const file = fileInput.files[0];
+        if (!file) return;
 
-      card.appendChild(p);
-      feed.prepend(card);
+        const status = document.createElement("p");
+        status.style.opacity = "0.7";
+        status.textContent = "Uploading image...";
+        feed.prepend(status);
+
+        try {
+          // ================= CLOUDINARY UPLOAD =================
+          const formData = new FormData();
+          formData.append("file", file);
+          formData.append("upload_preset", "Ebd4XUiMrH7-Cf3_h2o2fLsV2G8");
+
+          const cloudName = "djkjrowyi";
+
+          const res = await fetch(
+            `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+            {
+              method: "POST",
+              body: formData
+            }
+          );
+
+          const data = await res.json();
+
+          if (!data.secure_url) {
+            throw new Error("Cloudinary upload failed");
+          }
+
+          // ================= SAVE TO FIRESTORE =================
+          await db.collection("posts").add({
+            text: text.trim(),
+            imageUrl: data.secure_url,
+            userEmail: auth.currentUser.email,
+            userId: auth.currentUser.uid,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+
+          status.remove();
+        } catch (err) {
+          console.error(err);
+          status.textContent = "Upload failed ❌";
+        }
+      };
     };
+
+    // ================= LOAD FEED (REALTIME) =================
+    function loadPosts() {
+      db.collection("posts")
+        .orderBy("createdAt", "desc")
+        .onSnapshot(snapshot => {
+          feed.innerHTML = "";
+
+          snapshot.forEach(doc => {
+            const post = doc.data();
+
+            const card = document.createElement("div");
+            card.className = "card";
+
+            const user = document.createElement("p");
+            user.style.fontSize = "12px";
+            user.style.opacity = "0.7";
+            user.textContent = post.userEmail;
+
+            const text = document.createElement("p");
+            text.textContent = post.text;
+
+            card.appendChild(user);
+
+            if (post.imageUrl) {
+              const img = document.createElement("img");
+              img.src = post.imageUrl;
+              img.loading = "lazy";
+              card.appendChild(img);
+            }
+
+            card.appendChild(text);
+            feed.appendChild(card);
+          });
+        });
+    }
   </script>
 
 </body>
